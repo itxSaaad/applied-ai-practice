@@ -1,3 +1,21 @@
 iteration,model,ttft_ms,total_latency_ms,input_tokens,output_tokens
-1,Gemini Cloud (gemini-3.5-flash-lite),1776.19,2749.7,15,678
-2,Gemini Cloud (gemini-3.5-flash-lite),1179.82,2022.67,15,586
+1,Gemini Cloud (gemini-3.5-flash-lite),1098.25,1952.31,15,591
+2,Gemini Cloud (gemini-3.5-flash-lite),1005.89,1889.43,15,552
+3,Gemini Cloud (gemini-3.5-flash-lite),667.23,1575.03,15,551
+4,Gemini Cloud (gemini-3.5-flash-lite),833.62,1531.65,15,535
+5,Gemini Cloud (gemini-3.5-flash-lite),1046.91,1968.36,15,592
+6,Gemini Cloud (gemini-3.5-flash-lite),816.58,1339.44,15,473
+7,Gemini Cloud (gemini-3.5-flash-lite),529.7,1281.01,15,540
+8,Gemini Cloud (gemini-3.5-flash-lite),1020.46,2027.53,15,672
+9,Gemini Cloud (gemini-3.5-flash-lite),572.62,1770.9,15,715
+10,Gemini Cloud (gemini-3.5-flash-lite),569.29,1531.86,15,617
+11,Gemini Cloud (gemini-3.5-flash-lite),970.58,2041.47,15,664
+12,Gemini Cloud (gemini-3.5-flash-lite),816.04,1565.07,15,539
+13,Gemini Cloud (gemini-3.5-flash-lite),885.75,1712.13,15,557
+14,Gemini Cloud (gemini-3.5-flash-lite),1009.2,1662.5,15,548
+15,Gemini Cloud (gemini-3.5-flash-lite),1112.02,2056.31,15,642
+16,Gemini Cloud (gemini-3.5-flash-lite),927.79,1818.39,15,603
+17,Gemini Cloud (gemini-3.5-flash-lite),1075.17,2053.08,15,683
+18,Gemini Cloud (gemini-3.5-flash-lite),6061.07,6970.1,15,607
+19,Gemini Cloud (gemini-3.5-flash-lite),1561.1,2306.64,15,578
+20,Gemini Cloud (gemini-3.5-flash-lite),555.37,1420.33,15,604
