@@ -40,21 +40,39 @@ LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", "")
 LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", "")
 LANGFUSE_BASE_URL = os.getenv("LANGFUSE_BASE_URL", "https://us.cloud.langfuse.com")
 
+_langfuse_client = None
 _langfuse_handler = None
 
-def get_langfuse_handler():
-    """Returns a singleton Langfuse CallbackHandler for LangChain, or None if keys are missing."""
-    global _langfuse_handler
-    if _langfuse_handler is None and LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY:
+def get_langfuse_client():
+    """Returns the singleton Langfuse client instance."""
+    global _langfuse_client
+    if _langfuse_client is None and LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY:
         try:
-            from langfuse.callback import CallbackHandler
-            _langfuse_handler = CallbackHandler(
+            import langfuse
+            _langfuse_client = langfuse.Langfuse(
                 public_key=LANGFUSE_PUBLIC_KEY,
                 secret_key=LANGFUSE_SECRET_KEY,
                 host=LANGFUSE_BASE_URL
             )
         except Exception as e:
-            print(f"[config] Warning: Failed to initialize Langfuse callback: {e}")
+            print(f"[config] Warning: Failed to initialize Langfuse client: {e}")
+    return _langfuse_client
+
+def get_langfuse_handler():
+    """Returns a singleton Langfuse CallbackHandler for LangChain, or None if keys are missing."""
+    global _langfuse_handler
+    if _langfuse_handler is None:
+        client = get_langfuse_client()
+        if client:
+            try:
+                try:
+                    from langfuse.langchain import CallbackHandler
+                except ImportError:
+                    from langfuse.callback import CallbackHandler
+                
+                _langfuse_handler = CallbackHandler(public_key=LANGFUSE_PUBLIC_KEY)
+            except Exception as e:
+                print(f"[config] Warning: Failed to initialize Langfuse callback: {e}")
     return _langfuse_handler
 
 def get_callbacks():
@@ -64,9 +82,9 @@ def get_callbacks():
 
 def flush_traces():
     """Flushes queued background traces (Langfuse & LangSmith) before script termination."""
-    handler = get_langfuse_handler()
-    if handler:
+    client = get_langfuse_client()
+    if client:
         try:
-            handler.flush()
+            client.flush()
         except Exception:
             pass

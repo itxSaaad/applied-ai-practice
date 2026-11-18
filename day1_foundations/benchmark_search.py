@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 import numpy as np
 import chromadb
-from langchain_community.vectorstores import Chroma
 from langchain_ollama import OllamaEmbeddings
 
 # Ensure repository root is in sys.path
@@ -52,27 +51,30 @@ numpy_top_5_idx = np.argsort(numpy_similarities)[::-1][:5]
 t1 = time.perf_counter()
 numpy_latency = (t1 - t0) * 1000
 
-# 3. Ephemeral Vector Database Search via Chroma
+# 3. Ephemeral Vector Database Search via Native Chroma
 t2 = time.perf_counter()
-ephemeral_client = chromadb.EphemeralClient()
-vector_db = Chroma.from_texts(
-    texts=corpus,
-    embedding=embeddings_model,
-    client=ephemeral_client,
-    collection_name="benchmark_coll"
+client = chromadb.EphemeralClient()
+collection = client.create_collection(name="benchmark_coll")
+collection.add(
+    documents=corpus,
+    embeddings=corpus_embeddings,
+    ids=[f"doc_{i}" for i in range(len(corpus))]
 )
-chroma_results = vector_db.similarity_search_with_score(query, k=5)
+chroma_results = collection.query(
+    query_embeddings=[query_embedding],
+    n_results=5
+)
 t3 = time.perf_counter()
 chroma_latency = (t3 - t2) * 1000
 
 # 4. Recall Evaluation
 numpy_top_texts = set([corpus[idx] for idx in numpy_top_5_idx])
-chroma_top_texts = set([doc.page_content for doc, _ in chroma_results])
+chroma_top_texts = set(chroma_results["documents"][0])
 
 intersection = numpy_top_texts.intersection(chroma_top_texts)
 recall_at_5 = len(intersection) / 5.0
 
 print(f"\n--- Semantic Search Evaluation Results ---")
 print(f"NumPy Brute Force Latency: {numpy_latency:.2f} ms")
-print(f"Chroma HNSW Search Latency: {chroma_latency:.2f} ms")
+print(f"Chroma Indexing & Query Latency: {chroma_latency:.2f} ms")
 print(f"Recall@5 Alignment Rate: {recall_at_5 * 100:.1f}%")

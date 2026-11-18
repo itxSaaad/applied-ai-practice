@@ -1,0 +1,3 @@
+iteration,model,ttft_ms,total_latency_ms,input_tokens,output_tokens
+1,Gemini Cloud (gemini-3.5-flash-lite),1776.19,2749.7,15,678
+2,Gemini Cloud (gemini-3.5-flash-lite),1179.82,2022.67,15,586
