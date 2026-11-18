@@ -1,11 +1,17 @@
 import os
+import sys
+from pathlib import Path
 from typing import Optional
-from dotenv import load_dotenv
+
+# Ensure repository root is in sys.path so config can be imported from any location
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+import config
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
-
-load_dotenv()
 
 def get_llm(use_local: bool = False, temperature: float = 0.0) -> BaseChatModel:
     """
@@ -16,10 +22,11 @@ def get_llm(use_local: bool = False, temperature: float = 0.0) -> BaseChatModel:
         temperature: Sampling temperature controlling output variance.
     """
     if use_local:
-        model_name = os.getenv("LOCAL_MODEL", "qwen3:8b")
+        model_name = config.LOCAL_MODEL
         try:
             return ChatOllama(
                 model=model_name,
+                base_url=config.OLLAMA_BASE_URL,
                 temperature=temperature
             )
         except Exception as e:
@@ -28,8 +35,8 @@ def get_llm(use_local: bool = False, temperature: float = 0.0) -> BaseChatModel:
                 f"Verify that the Ollama daemon is active on port 11434. Details: {e}"
             )
     else:
-        model_name = os.getenv("LLM_MODEL", "gemini-3.8-flash")
-        api_key = os.getenv("GOOGLE_API_KEY")
+        model_name = config.LLM_MODEL
+        api_key = config.GOOGLE_API_KEY
         if not api_key:
             raise ValueError(
                 "GOOGLE_API_KEY environment variable is not set. "
@@ -45,12 +52,16 @@ def chat(prompt: str, use_local: Optional[bool] = None) -> str:
     """
     Dispatches a text prompt to the configured LLM wrapper.
     
-    If use_local is None or prompt is 'ping', executes dual provider validation (Cloud & Local)
-    to confirm routing and emit operational traces to both LangSmith and Langfuse.
+    Passes tracing callbacks (Langfuse) and automatic LangSmith tracing so all invocations
+    are recorded in both dashboards, then flushes pending traces.
     """
+    callbacks = config.get_callbacks()
+    invoke_config = {"callbacks": callbacks} if callbacks else {}
+
     if use_local is not None:
         llm = get_llm(use_local=use_local)
-        response = llm.invoke(prompt)
+        response = llm.invoke(prompt, config=invoke_config)
+        config.flush_traces()
         return str(response.content)
 
     # Verification contract handling for setup validation
@@ -58,18 +69,20 @@ def chat(prompt: str, use_local: Optional[bool] = None) -> str:
         cloud_llm = get_llm(use_local=False)
         local_llm = get_llm(use_local=True)
         
-        cloud_res = cloud_llm.invoke("ping")
-        local_res = local_llm.invoke("ping")
+        cloud_res = cloud_llm.invoke("ping", config=invoke_config)
+        local_res = local_llm.invoke("ping", config=invoke_config)
+        config.flush_traces()
         
         return (
-            f"[Cloud: {os.getenv('LLM_MODEL', 'gemini-3.8-flash')}] -> {cloud_res.content}\n"
-            f"[Local: {os.getenv('LOCAL_MODEL', 'qwen3:8b')}] -> {local_res.content}"
+            f"[Cloud: {config.LLM_MODEL}] -> {cloud_res.content}\n"
+            f"[Local: {config.LOCAL_MODEL}] -> {local_res.content}"
         )
 
     llm = get_llm(use_local=False)
-    response = llm.invoke(prompt)
+    response = llm.invoke(prompt, config=invoke_config)
+    config.flush_traces()
     return str(response.content)
 
 if __name__ == "__main__":
-    print("Testing Provider Routing...")
+    print("Testing Provider Routing & Dual Tracing (LangSmith + Langfuse)...")
     print(chat("ping"))

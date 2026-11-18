@@ -1,8 +1,22 @@
+import sys
 import time
+from pathlib import Path
 import numpy as np
 import chromadb
 from langchain_community.vectorstores import Chroma
 from langchain_ollama import OllamaEmbeddings
+
+# Ensure repository root is in sys.path
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+# Ensure day1_foundations is in sys.path
+DAY1_DIR = Path(__file__).resolve().parent
+if str(DAY1_DIR) not in sys.path:
+    sys.path.insert(0, str(DAY1_DIR))
+
+import config
 
 # 1. Corpus initialization
 corpus = [
@@ -15,8 +29,11 @@ corpus = [
 
 query = "How do continuous dense vectors measure semantic distance?"
 
-print("Generating embeddings via local Ollama (nomic-embed-text)...")
-embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
+print(f"Generating embeddings via local Ollama ({config.OLLAMA_BASE_URL}, model=nomic-embed-text)...")
+embeddings_model = OllamaEmbeddings(
+    model="nomic-embed-text",
+    base_url=config.OLLAMA_BASE_URL
+)
 
 corpus_embeddings = embeddings_model.embed_documents(corpus)
 query_embedding = embeddings_model.embed_query(query)

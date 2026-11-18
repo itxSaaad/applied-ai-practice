@@ -1,11 +1,25 @@
 import argparse
 import csv
+import sys
 import time
+from pathlib import Path
 import numpy as np
+
+# Ensure repository root is in sys.path
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+# Ensure day1_foundations is in sys.path for local imports
+DAY1_DIR = Path(__file__).resolve().parent
+if str(DAY1_DIR) not in sys.path:
+    sys.path.insert(0, str(DAY1_DIR))
+
+import config
 from llm import get_llm
 
 def profile_model(use_local: bool, prompt: str, runs: int) -> None:
-    model_label = "Ollama Local" if use_local else "Gemini Cloud"
+    model_label = f"Ollama Local ({config.LOCAL_MODEL})" if use_local else f"Gemini Cloud ({config.LLM_MODEL})"
     llm = get_llm(use_local=use_local)
     
     ttfts = []
@@ -13,6 +27,9 @@ def profile_model(use_local: bool, prompt: str, runs: int) -> None:
     input_tokens_list = []
     output_tokens_list = []
     records = []
+
+    callbacks = config.get_callbacks()
+    stream_config = {"callbacks": callbacks} if callbacks else {}
 
     print(f"Starting profiling: {model_label} across {runs} iterations...")
 
@@ -22,7 +39,7 @@ def profile_model(use_local: bool, prompt: str, runs: int) -> None:
         full_response = ""
         
         # Stream response to measure Time to First Token (TTFT)
-        stream = llm.stream(prompt)
+        stream = llm.stream(prompt, config=stream_config)
         last_chunk = None
         for chunk in stream:
             if first_token_time is None:
@@ -64,8 +81,10 @@ def profile_model(use_local: bool, prompt: str, runs: int) -> None:
             "output_tokens": out_tokens
         })
 
-    filename = f"profile_{'local' if use_local else 'cloud'}.csv"
-    with open(filename, "w", newline="") as f:
+    config.flush_traces()
+
+    output_path = DAY1_DIR / f"profile_{'local' if use_local else 'cloud'}.csv"
+    with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=records[0].keys())
         writer.writeheader()
         writer.writerows(records)
@@ -75,7 +94,7 @@ def profile_model(use_local: bool, prompt: str, runs: int) -> None:
     print(f"TTFT p50: {np.percentile(ttfts, 50):.2f} ms | p95: {np.percentile(ttfts, 95):.2f} ms")
     print(f"Total Latency p50: {np.percentile(latencies, 50):.2f} ms | p95: {np.percentile(latencies, 95):.2f} ms")
     print(f"Avg Output Tokens: {np.mean(output_tokens_list):.1f}")
-    print(f"Raw profiling log written to {filename}\n")
+    print(f"Raw profiling log written to {output_path}\n")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="LLM Latency & Token Profiler")

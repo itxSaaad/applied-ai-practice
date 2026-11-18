@@ -1,4 +1,18 @@
 import json
+import sys
+from pathlib import Path
+
+# Ensure repository root is in sys.path
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+# Ensure day1_foundations is in sys.path
+DAY1_DIR = Path(__file__).resolve().parent
+if str(DAY1_DIR) not in sys.path:
+    sys.path.insert(0, str(DAY1_DIR))
+
+import config
 from llm import get_llm
 
 def evaluate_temperature_sampling(temp: float, iterations: int = 10):
@@ -11,9 +25,11 @@ def evaluate_temperature_sampling(temp: float, iterations: int = 10):
     
     valid_json_count = 0
     unique_responses = set()
+    callbacks = config.get_callbacks()
+    invoke_config = {"callbacks": callbacks} if callbacks else {}
 
     for _ in range(iterations):
-        res = llm.invoke(prompt)
+        res = llm.invoke(prompt, config=invoke_config)
         text = str(res.content).strip()
         unique_responses.add(text)
         
@@ -24,6 +40,7 @@ def evaluate_temperature_sampling(temp: float, iterations: int = 10):
         except json.JSONDecodeError:
             pass
 
+    config.flush_traces()
     valid_rate = (valid_json_count / iterations) * 100
     return valid_rate, len(unique_responses)
 
