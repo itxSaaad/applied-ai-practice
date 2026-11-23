@@ -13,10 +13,30 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 
+
+def _extract_clean_text(message) -> str:
+    """Extracts clean text content from AIMessage, handling multimodal/content-block formats."""
+    if hasattr(message, "text") and message.text:
+        return message.text
+    content = getattr(message, "content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for part in content:
+            if isinstance(part, str):
+                parts.append(part)
+            elif isinstance(part, dict) and part.get("type") == "text":
+                parts.append(part.get("text", ""))
+        if parts:
+            return "".join(parts)
+    return str(content)
+
+
 def get_llm(use_local: bool = False, temperature: float = 0.0) -> BaseChatModel:
     """
     Instantiates a provider-agnostic LangChain chat model based on environment variables.
-    
+
     Args:
         use_local: If True, routes execution to local Ollama runtime; otherwise uses Gemini Cloud.
         temperature: Sampling temperature controlling output variance.
@@ -27,7 +47,7 @@ def get_llm(use_local: bool = False, temperature: float = 0.0) -> BaseChatModel:
             return ChatOllama(
                 model=model_name,
                 base_url=config.OLLAMA_BASE_URL,
-                temperature=temperature
+                temperature=temperature,
             )
         except Exception as e:
             raise ConnectionError(
@@ -45,15 +65,16 @@ def get_llm(use_local: bool = False, temperature: float = 0.0) -> BaseChatModel:
         return ChatGoogleGenerativeAI(
             model=model_name,
             google_api_key=api_key,
-            temperature=temperature
+            temperature=temperature,
         )
+
 
 def chat(prompt: str, use_local: Optional[bool] = None) -> str:
     """
     Dispatches a text prompt to the configured LLM wrapper.
-    
-    Passes tracing callbacks (Langfuse) and automatic LangSmith tracing so all invocations
-    are recorded in both dashboards, then flushes pending traces.
+
+    Passes tracing callbacks (Langfuse + LangSmith) and flushes pending traces.
+    Returns clean text without raw thinking-signature lists.
     """
     callbacks = config.get_callbacks()
     invoke_config = {"callbacks": callbacks} if callbacks else {}
@@ -62,26 +83,35 @@ def chat(prompt: str, use_local: Optional[bool] = None) -> str:
         llm = get_llm(use_local=use_local)
         response = llm.invoke(prompt, config=invoke_config)
         config.flush_traces()
-        return str(response.content)
+        return _extract_clean_text(response)
 
     # Verification contract handling for setup validation
     if prompt.strip().lower() == "ping":
-        cloud_llm = get_llm(use_local=False)
-        local_llm = get_llm(use_local=True)
-        
-        cloud_res = cloud_llm.invoke("ping", config=invoke_config)
-        local_res = local_llm.invoke("ping", config=invoke_config)
+        try:
+            cloud_llm = get_llm(use_local=False)
+            cloud_res = cloud_llm.invoke("ping", config=invoke_config)
+            cloud_text = _extract_clean_text(cloud_res)
+        except Exception as e:
+            cloud_text = f"[Ping check: {e}]"
+
+        try:
+            local_llm = get_llm(use_local=True)
+            local_res = local_llm.invoke("ping", config=invoke_config)
+            local_text = _extract_clean_text(local_res)
+        except Exception as e:
+            local_text = f"[Ping check: {e}]"
+
         config.flush_traces()
-        
         return (
-            f"[Cloud: {config.LLM_MODEL}] -> {cloud_res.content}\n"
-            f"[Local: {config.LOCAL_MODEL}] -> {local_res.content}"
+            f"[Cloud: {config.LLM_MODEL}] -> {cloud_text}\n"
+            f"[Local: {config.LOCAL_MODEL}] -> {local_text}"
         )
 
     llm = get_llm(use_local=False)
     response = llm.invoke(prompt, config=invoke_config)
     config.flush_traces()
-    return str(response.content)
+    return _extract_clean_text(response)
+
 
 if __name__ == "__main__":
     print("Testing Provider Routing & Dual Tracing (LangSmith + Langfuse)...")

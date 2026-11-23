@@ -6,19 +6,25 @@ __pycache__/
 # Virtual environment
 .venv/
 
+# Environment variables
+.env
+
+# Data files, database & vector store caches
+*.csv
+*.db
+*.sqlite
+chroma_db/
+
 # Packages
 *.egg
 *.egg-info/
 .dist/
 build/
 
-# IDE/editor
+# IDE / Editor
 .vscode/
 .idea/
 *.iml
-
-# Environment variables
-.env
 
 # OS files
 .DS_Store
