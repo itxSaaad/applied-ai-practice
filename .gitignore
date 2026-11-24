@@ -13,7 +13,10 @@ __pycache__/
 *.csv
 *.db
 *.sqlite
+*.sqlite-wal
+*.sqlite-shm
 chroma_db/
+sent_emails.txt
 
 # Packages
 *.egg
