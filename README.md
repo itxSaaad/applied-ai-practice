@@ -34,7 +34,8 @@ All scripts across `day1_foundations/` through `capstone/` load their settings v
 * **Environment Loading**: Automatically locates and loads the root `.env` regardless of where scripts are executed.
 * **LangSmith Auto-Tracing**: Automatically maps `LANGSMITH_TRACING` and `LANGSMITH_API_KEY` to LangChain core standards (`LANGCHAIN_TRACING_V2` and `LANGCHAIN_API_KEY`) without modifying your `.env` file.
 * **Langfuse Dual-Tracing**: Instantiates and exports a singleton `CallbackHandler` for LangChain invocations via `config.get_callbacks()`.
-* **Trace Flushing**: Exposes `config.flush_traces()` to guarantee all asynchronous traces reach both LangSmith and Langfuse dashboards before short-lived CLI scripts terminate.
+* **Operation Spans & Metrics**: `config.trace_operation()` sends non-LangChain work to both providers and logs operation duration and status.
+* **Trace Flushing**: `config.flush_traces()` flushes configured LangSmith and Langfuse clients and surfaces delivery errors.
 
 ---
 
@@ -49,8 +50,8 @@ Ensure Python 3.12 is active and dependencies are installed using `uv`:
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
-# Install course pinned dependencies
-uv sync
+# Install course and evaluation dependencies
+uv sync --extra dev
 ```
 
 ### 2. Configure Credentials
@@ -63,6 +64,7 @@ GOOGLE_API_KEY=your_google_ai_studio_key
 GOOGLE_GENAI_USE_VERTEXAI=FALSE
 LLM_MODEL=gemini-3.5-flash-lite
 LOCAL_MODEL=qwen3:8b
+USE_LOCAL_LLM=false
 OLLAMA_BASE_URL=http://localhost:11434
 
 # LangSmith Tracing
@@ -115,3 +117,14 @@ python day1_foundations/benchmark_temp.py
 # 4. NumPy vs. Chroma vector search benchmark
 python day1_foundations/benchmark_search.py
 ```
+
+## 🧪 Running the Day 4 ADK Evaluation
+
+```powershell
+pytest evals/test_day4_adk_evals.py -k "not trajectory" -v
+pytest evals/test_day4_adk_evals.py -v
+adk eval day4_adk evals/day4_incident_pipeline.evalset.json
+```
+
+The ADK trajectory test uses the model selected by `USE_LOCAL_LLM` and can take
+several minutes per evaluation run when using a local model.

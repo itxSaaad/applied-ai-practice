@@ -1,0 +1,49 @@
+{
+  "eval_set_id": "day4_incident_pipeline_trajectory",
+  "name": "Day 4 Parallel Log Sweep & Root Cause Trajectory",
+  "description": "Verifies concurrent read_log tool calls for auth-service and payment-service followed by root cause synthesis.",
+  "eval_cases": [
+    {
+      "eval_id": "case_01_full_service_sweep",
+      "conversation": [
+        {
+          "invocation_id": "inv_01",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Run incident log sweep for auth-service and payment-service over the last 15 minutes."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Both auth-service and payment-service logs for the last 15 minutes show no critical errors."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
