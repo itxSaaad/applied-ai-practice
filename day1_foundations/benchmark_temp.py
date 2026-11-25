@@ -15,8 +15,10 @@ if str(DAY1_DIR) not in sys.path:
     sys.path.insert(0, str(DAY1_DIR))
 
 import config
-from llm import get_llm
+from llm import _extract_clean_text, get_llm
 
+
+@config.trace_operation("day1_temperature_benchmark", flush=True)
 def evaluate_temperature_sampling(temp: float, iterations: int = 5):
     llm = get_llm(use_local=False, temperature=temp)
     prompt = (
@@ -32,7 +34,7 @@ def evaluate_temperature_sampling(temp: float, iterations: int = 5):
 
     for _ in range(iterations):
         res = llm.invoke(prompt, config=invoke_config)
-        text = str(res.content).strip()
+        text = _extract_clean_text(res).strip()
         unique_responses.add(text)
         
         try:
@@ -43,7 +45,6 @@ def evaluate_temperature_sampling(temp: float, iterations: int = 5):
             pass
         time.sleep(0.5)
 
-    config.flush_traces()
     valid_rate = (valid_json_count / iterations) * 100
     return valid_rate, len(unique_responses)
 

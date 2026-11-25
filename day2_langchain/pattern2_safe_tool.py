@@ -20,32 +20,40 @@ DB_PATH = Path(__file__).resolve().parent.parent / "incidents.db"
 
 
 def seed_database():
-    """Initializes and seeds the sample incidents table in SQLite."""
+    """Creates sample data only when the incidents table does not exist."""
     conn = sqlite3.connect(DB_PATH)
     with conn:
-        conn.execute("DROP TABLE IF EXISTS incidents")
-        conn.execute(
-            """
-            CREATE TABLE incidents (
-                id INTEGER PRIMARY KEY,
-                title TEXT NOT NULL,
-                severity TEXT NOT NULL,
-                status TEXT NOT NULL
+        table_exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'incidents'"
+        ).fetchone()
+        if not table_exists:
+            conn.execute(
+                """
+                CREATE TABLE incidents (
+                    id INTEGER PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    status TEXT NOT NULL
+                )
+                """
             )
-            """
-        )
-        conn.executemany(
-            "INSERT INTO incidents (title, severity, status) VALUES (?, ?, ?)",
-            [
-                ("Production checkout API 504 gateway timeout", "Critical", "Investigating"),
-                ("High latency on user authentication service", "High", "Identified"),
-                ("Periodic worker memory pressure alert", "Medium", "Resolved"),
-            ],
-        )
+            conn.executemany(
+                "INSERT INTO incidents (title, severity, status) VALUES (?, ?, ?)",
+                [
+                    ("Production checkout API 504 gateway timeout", "Critical", "Investigating"),
+                    ("High latency on user authentication service", "High", "Identified"),
+                    ("Periodic worker memory pressure alert", "Medium", "Resolved"),
+                ],
+            )
     conn.close()
 
 
 @tool
+@config.trace_operation(
+    "day2_read_only_sqlite_query",
+    capture_input=False,
+    capture_output=False,
+)
 def query_read_only_sqlite(query: str) -> str:
     """Executes a strictly READ-ONLY SQL query against incidents.db.
     Enforces that queries must start with SELECT; write or DDL operations raise ValueError.
@@ -54,7 +62,7 @@ def query_read_only_sqlite(query: str) -> str:
     if not normalized.startswith("select"):
         raise ValueError("Write and non-SELECT statements are forbidden.")
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(f"{DB_PATH.as_uri()}?mode=ro", uri=True)
     try:
         cursor = conn.cursor()
         cursor.execute(query)

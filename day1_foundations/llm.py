@@ -33,7 +33,7 @@ def _extract_clean_text(message) -> str:
     return str(content)
 
 
-def get_llm(use_local: bool = False, temperature: float = 0.0) -> BaseChatModel:
+def get_llm(use_local: Optional[bool] = None, temperature: float = 0.0) -> BaseChatModel:
     """
     Instantiates a provider-agnostic LangChain chat model based on environment variables.
 
@@ -41,6 +41,9 @@ def get_llm(use_local: bool = False, temperature: float = 0.0) -> BaseChatModel:
         use_local: If True, routes execution to local Ollama runtime; otherwise uses Gemini Cloud.
         temperature: Sampling temperature controlling output variance.
     """
+    if use_local is None:
+        use_local = config.USE_LOCAL_LLM
+
     if use_local:
         model_name = config.LOCAL_MODEL
         try:
@@ -69,7 +72,12 @@ def get_llm(use_local: bool = False, temperature: float = 0.0) -> BaseChatModel:
         )
 
 
-def chat(prompt: str, use_local: Optional[bool] = None) -> str:
+@config.trace_operation("day1_chat", flush=True)
+def chat(
+    prompt: str,
+    use_local: Optional[bool] = None,
+    temperature: float = 0.0,
+) -> str:
     """
     Dispatches a text prompt to the configured LLM wrapper.
 
@@ -79,40 +87,11 @@ def chat(prompt: str, use_local: Optional[bool] = None) -> str:
     callbacks = config.get_callbacks()
     invoke_config = {"callbacks": callbacks} if callbacks else {}
 
-    if use_local is not None:
-        llm = get_llm(use_local=use_local)
-        response = llm.invoke(prompt, config=invoke_config)
-        config.flush_traces()
-        return _extract_clean_text(response)
-
-    # Verification contract handling for setup validation
-    if prompt.strip().lower() == "ping":
-        try:
-            cloud_llm = get_llm(use_local=False)
-            cloud_res = cloud_llm.invoke("ping", config=invoke_config)
-            cloud_text = _extract_clean_text(cloud_res)
-        except Exception as e:
-            cloud_text = f"[Ping check: {e}]"
-
-        try:
-            local_llm = get_llm(use_local=True)
-            local_res = local_llm.invoke("ping", config=invoke_config)
-            local_text = _extract_clean_text(local_res)
-        except Exception as e:
-            local_text = f"[Ping check: {e}]"
-
-        config.flush_traces()
-        return (
-            f"[Cloud: {config.LLM_MODEL}] -> {cloud_text}\n"
-            f"[Local: {config.LOCAL_MODEL}] -> {local_text}"
-        )
-
-    llm = get_llm(use_local=False)
+    llm = get_llm(use_local=use_local, temperature=temperature)
     response = llm.invoke(prompt, config=invoke_config)
-    config.flush_traces()
     return _extract_clean_text(response)
 
 
 if __name__ == "__main__":
-    print("Testing Provider Routing & Dual Tracing (LangSmith + Langfuse)...")
-    print(chat("ping"))
+    print("Local:", chat("Reply with OK.", use_local=True))
+    print("Cloud:", chat("Reply with OK.", use_local=False))

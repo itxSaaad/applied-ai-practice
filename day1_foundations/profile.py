@@ -16,8 +16,10 @@ if str(DAY1_DIR) not in sys.path:
     sys.path.insert(0, str(DAY1_DIR))
 
 import config
-from llm import get_llm
+from llm import _extract_clean_text, get_llm
 
+
+@config.trace_operation("day1_model_profile", flush=True)
 def profile_model(use_local: bool, prompt: str, runs: int) -> None:
     model_label = f"Ollama Local ({config.LOCAL_MODEL})" if use_local else f"Gemini Cloud ({config.LLM_MODEL})"
     llm = get_llm(use_local=use_local)
@@ -44,7 +46,7 @@ def profile_model(use_local: bool, prompt: str, runs: int) -> None:
         for chunk in stream:
             if first_token_time is None:
                 first_token_time = time.perf_counter()
-            full_response += str(chunk.content)
+            full_response += _extract_clean_text(chunk)
             last_chunk = chunk
             
         end_time = time.perf_counter()
@@ -80,8 +82,6 @@ def profile_model(use_local: bool, prompt: str, runs: int) -> None:
             "input_tokens": in_tokens,
             "output_tokens": out_tokens
         })
-
-    config.flush_traces()
 
     output_path = DAY1_DIR / f"profile_{'local' if use_local else 'cloud'}.csv"
     with open(output_path, "w", newline="") as f:

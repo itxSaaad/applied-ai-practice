@@ -65,6 +65,7 @@ prompt = ChatPromptTemplate.from_template(
 )
 
 
+@config.trace_operation("day2_rag_retrieval")
 def rag_pipeline(question: str) -> Answer:
     callbacks = config.get_callbacks()
     invoke_config = {"callbacks": callbacks} if callbacks else {}

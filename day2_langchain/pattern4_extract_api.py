@@ -39,6 +39,12 @@ structured_extractor = llm.with_structured_output(Ticket).with_retry(stop_after_
 
 
 @app.post("/extract_ticket", response_model=Ticket)
+@config.trace_operation(
+    "day2_ticket_extraction",
+    capture_input=False,
+    capture_output=False,
+    flush=True,
+)
 async def extract_ticket_endpoint(raw_text: str):
     try:
         callbacks = config.get_callbacks()
@@ -47,7 +53,6 @@ async def extract_ticket_endpoint(raw_text: str):
             f"Analyze the following support ticket and extract structured properties:\n\n{raw_text}",
             config=invoke_config,
         )
-        config.flush_traces()
         return extracted_ticket
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to extract structured payload: {str(e)}")
