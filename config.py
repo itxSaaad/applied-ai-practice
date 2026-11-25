@@ -1,3 +1,4 @@
+import base64
 import inspect
 import logging
 import os
@@ -20,18 +21,6 @@ load_dotenv(dotenv_path=ENV_PATH)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("applied_ai")
 
-# Automatic LangSmith bridge:
-# LangChain internally checks LANGCHAIN_TRACING_V2, LANGCHAIN_API_KEY, LANGCHAIN_PROJECT, LANGCHAIN_ENDPOINT.
-# Map LANGSMITH_* to LANGCHAIN_* in os.environ without mutating the user's .env file.
-if os.getenv("LANGSMITH_TRACING", "").lower() == "true":
-    os.environ["LANGCHAIN_TRACING_V2"] = "true"
-if api_key := os.getenv("LANGSMITH_API_KEY"):
-    os.environ.setdefault("LANGCHAIN_API_KEY", api_key)
-if project := os.getenv("LANGSMITH_PROJECT"):
-    os.environ.setdefault("LANGCHAIN_PROJECT", project)
-if endpoint := os.getenv("LANGSMITH_ENDPOINT"):
-    os.environ.setdefault("LANGCHAIN_ENDPOINT", endpoint)
-
 # LLM Providers Configuration
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 GOOGLE_GENAI_USE_VERTEXAI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "FALSE").upper() == "TRUE"
@@ -43,11 +32,33 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 # LangSmith Configuration
 LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "false").lower() == "true"
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "agentic-course")
+LANGSMITH_OTEL_ENABLED = os.getenv("LANGSMITH_OTEL_ENABLED", "true").lower() == "true"
+LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY", "")
+LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT", "")
 
 # Langfuse Configuration
 LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", "")
 LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", "")
 LANGFUSE_BASE_URL = os.getenv("LANGFUSE_BASE_URL", "https://us.cloud.langfuse.com")
+LANGFUSE_OTEL_ENDPOINT = f"{LANGFUSE_BASE_URL.rstrip('/')}/api/public/otel"
+LANGFUSE_OTEL_HEADERS = None
+if LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY:
+    _langfuse_auth = base64.b64encode(
+        f"{LANGFUSE_PUBLIC_KEY}:{LANGFUSE_SECRET_KEY}".encode()
+    ).decode()
+    LANGFUSE_OTEL_HEADERS = {"Authorization": f"Basic {_langfuse_auth}"}
+
+# Automatic LangSmith bridge:
+# LangChain internally checks LANGCHAIN_* variables. This bridge is the only
+# environment mapping config needs to perform.
+if LANGSMITH_TRACING:
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+if LANGSMITH_API_KEY:
+    os.environ.setdefault("LANGCHAIN_API_KEY", LANGSMITH_API_KEY)
+if LANGSMITH_PROJECT:
+    os.environ.setdefault("LANGCHAIN_PROJECT", LANGSMITH_PROJECT)
+if LANGSMITH_ENDPOINT:
+    os.environ.setdefault("LANGCHAIN_ENDPOINT", LANGSMITH_ENDPOINT)
 
 _langfuse_client = None
 _langfuse_handler = None
