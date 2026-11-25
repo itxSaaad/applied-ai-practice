@@ -9,11 +9,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-# Ensure day1_foundations is in sys.path
-DAY1_DIR = Path(__file__).resolve().parent
-if str(DAY1_DIR) not in sys.path:
-    sys.path.insert(0, str(DAY1_DIR))
-
 import config
 from llm import _extract_clean_text, get_llm
 

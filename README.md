@@ -14,14 +14,15 @@ applied-ai-practice/
 ├── .env.example          # Sanitized template for environment configuration
 ├── .gitignore            # Git ignore rules for virtualenvs, caches, and secrets
 ├── config.py             # Central environment loader & dual tracing bridge
+├── llm.py                # Shared Gemini/Ollama wrapper
 ├── pyproject.toml        # Pinned project dependencies managed via uv
-├── day1_foundations/     # Milestone 1: LLM & ML Foundations for Engineers
+├── day1_foundations/     # Day 1 scripts and profiling CSVs
 ├── day2_langchain/       # Milestone 2: LLM Application Engineering with LangChain v1
 ├── day3_langgraph/       # Milestone 3: Stateful Agents with LangGraph
 ├── day4_adk/             # Milestone 4: Agents with Google ADK, MCP & A2A
-├── day5_observability/   # Milestone 5: Observability, Evaluation & Production Readiness
-├── capstone/             # Week 2: OpsPilot Multi-Agent Incident Response Copilot
-├── data/                 # Shared data assets, vector stores, and sample documents
+├── day5_observability/   # Scaffold for Day 5 deliverables
+├── capstone/             # Scaffold for the Days 6–10 OpsPilot project
+├── data/                 # Shared sample data and runbooks
 ├── evals/                # Test datasets and evaluation benchmarks
 └── notes/                # Daily notes, decision memos, and architecture records
 ```
@@ -32,6 +33,7 @@ applied-ai-practice/
 
 All scripts across `day1_foundations/` through `capstone/` load their settings via the root `config.py`:
 * **Environment Loading**: Automatically locates and loads the root `.env` regardless of where scripts are executed.
+* **Ollama URL**: `OLLAMA_BASE_URL` is the only supported environment variable for the Ollama server URL. Ollama integrations read `config.OLLAMA_BASE_URL` (defaults to `http://localhost:11434`).
 * **LangSmith Auto-Tracing**: Automatically maps `LANGSMITH_TRACING` and `LANGSMITH_API_KEY` to LangChain core standards (`LANGCHAIN_TRACING_V2` and `LANGCHAIN_API_KEY`) without modifying your `.env` file.
 * **Langfuse Dual-Tracing**: Instantiates and exports a singleton `CallbackHandler` for LangChain invocations via `config.get_callbacks()`.
 * **Operation Spans & Metrics**: `config.trace_operation()` sends non-LangChain work to both providers and logs operation duration and status.
@@ -41,90 +43,144 @@ All scripts across `day1_foundations/` through `capstone/` load their settings v
 
 ## 🚀 Getting Started
 
-### 1. Environment Setup
+### Prerequisites
 
-Ensure Python 3.12 is active and dependencies are installed using `uv`:
+- Windows PowerShell and the repository checked out locally.
+- The trusted global Python at `C:\Python314\python.exe` and `uv`. Do not create a workspace `.venv` on `D:`.
+- Ollama installed and running for local-model exercises. Install Node.js/npm for the Day 4 MCP filesystem exercise.
+
+Install `uv` and Ollama before continuing. Node.js/npm are only needed for the MCP exercise.
+
+### 1. Install Python dependencies
+
+Run these commands from the repository root:
 
 ```powershell
-# Create and activate virtual environment
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-# Install course and evaluation dependencies
-uv sync --extra dev
+C:\Python314\python.exe --version
+uv --version
+ollama --version
+uv pip install --python C:\Python314\python.exe --system --break-system-packages -e ".[dev]"
 ```
 
-### 2. Configure Credentials
+### 2. Create and configure `.env`
 
-Copy `.env.example` to `.env` and fill in your keys:
+Create `.env` from the template only when one does not already exist. This avoids overwriting existing credentials:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+For local Ollama runs, set these values in `.env`:
 
 ```ini
-# Models
-GOOGLE_API_KEY=your_google_ai_studio_key
-GOOGLE_GENAI_USE_VERTEXAI=FALSE
-LLM_MODEL=gemini-3.5-flash-lite
+USE_LOCAL_LLM=true
 LOCAL_MODEL=qwen3:8b
-USE_LOCAL_LLM=false
 OLLAMA_BASE_URL=http://localhost:11434
+```
 
-# LangSmith Tracing
-LANGSMITH_TRACING=true
-LANGSMITH_API_KEY=your_langsmith_key
-LANGSMITH_PROJECT=agentic-course
+Then start Ollama and download the chat and embedding models used by the exercises:
 
-# Langfuse Observability
-LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
-LANGFUSE_SECRET_KEY=your_langfuse_secret_key
-LANGFUSE_BASE_URL=https://us.cloud.langfuse.com
+```powershell
+ollama pull qwen3:8b
+ollama pull nomic-embed-text
+ollama list
+```
+
+`GOOGLE_API_KEY` is required for exercises that call Gemini, including the Day 2 extraction API and temperature benchmark. Set `USE_LOCAL_LLM=false` to select Gemini in shared-model and ADK examples. LangSmith/Langfuse credentials are optional; leave their keys blank and tracing disabled for a local-only setup. Never replace an existing `.env` with the template.
+
+### 3. Check configuration
+
+From the repository root, confirm the Python package and configured URL load:
+
+```powershell
+C:\Python314\python.exe -c "import config; print(config.OLLAMA_BASE_URL)"
 ```
 
 ---
 
 ## 📚 Course Milestones & Deliverables
 
-### Week 1: Learning Milestones
+The suggested curriculum names below are logical descriptions. Existing equivalent files are kept under their current names; files marked **planned** are not yet implemented.
 
 | Milestone | Directory | Focus & Deliverables |
 | :--- | :--- | :--- |
-| **Day 1: Foundations** | `day1_foundations/` | • Provider wrapper (`llm.py`) switching between Gemini Cloud & local Ollama.<br>• Token & latency profiler (`profile.py`) outputting p50/p95 to CSV.<br>• Brute-force NumPy vs. Chroma vector search (`benchmark_search.py`).<br>• Temperature sampling validity benchmark (`benchmark_temp.py`). |
-| **Day 2: LangChain v1** | `day2_langchain/` | • Documentation Q&A RAG tool with Chroma indexing.<br>• FastAPI support ticket structured extraction endpoint with retries.<br>• Chunking study measuring Hit Rate@4 over 25 Q&A pairs.<br>• 3-tool agent with model-call limit middleware.<br>• Fallback test handling Gemini failure with local Ollama. |
-| **Day 3: LangGraph** | `day3_langgraph/` | • Corrective-RAG graph (route $\rightarrow$ retrieve $\rightarrow$ grade $\rightarrow$ rewrite $\rightarrow$ generate).<br>• Accuracy & latency comparison between plain and Corrective RAG.<br>• Human approval gate graph with pause, restart, and resume.<br>• Map-reduce summarization flow using `Send`.<br>• Multi-agent supervisor team routing between subgraphs. |
-| **Day 4: Google ADK & MCP** | `day4_adk/` | • Incident analyst ADK agent over SQLite incidents and service logs.<br>• Supervisor team ported to Google ADK + LangGraph vs. ADK comparison memo.<br>• Critique loop with `LoopAgent` (writer + critic).<br>• Guardrail callbacks blocking unsafe SQL and redacting PII.<br>• Filesystem MCP tool integration scoping read-only runbook access.<br>• 10-case ADK evaluation set passing $\ge$ 8/10 cases. |
-| **Day 5: Observability & Evals** | `day5_observability/` | • Dual tracing setup emitting OpenTelemetry spans to LangSmith & Langfuse.<br>• LangSmith prompt variation experiment on correctness and latency.<br>• Prompt-injection drill measuring resistance before and after defense.<br>• GitHub Actions CI workflow running evaluation tests on pull requests.<br>• 1-page Tool Choice Memo comparing LangSmith and Langfuse. |
+| **Day 1: Foundations** | `day1_foundations/` | `profile.py`; `benchmark_search.py` (semantic-search exercise); `benchmark_temp.py` (temperature experiment); tracked profile CSVs. The proposed `decision_memo.md` is planned, not present. |
+| **Day 2: LangChain v1** | `day2_langchain/` | `pattern1_fallbacks.py` (fallback test); `pattern2_safe_tool.py`; `pattern3_agent_middleware.py` (tool agent); `pattern4_extract_api.py` (extraction API); `pattern5_rag_agent.py`. A separate chunking-study experiment is not present yet. |
+| **Day 3: LangGraph** | `day3_langgraph/` | `pattern1_crag.py`; `pattern2_hitl.py`; `pattern3_map_reduce.py`; `pattern4_supervisor.py`; `pattern5_functional_api.py`. A dedicated offline `test_graph.py` suite is not present yet. |
+| **Day 4: Google ADK, MCP & A2A** | `day4_adk/`, `evals/` | `agent.py`, `model_config.py`, `pattern1_pipeline.py`, `pattern2_critique_loop.py`, `pattern3_guardrail_callbacks.py`, `pattern4_mcp_runbooks.py`, `pattern5_a2a_server.py`, `test_a2a_client.py`; `evals/day4_incident_pipeline.evalset.json` is the current eval-set file. The current pipeline is not an ADK supervisor port. |
+| **Day 5: Observability & Evaluation** | `day5_observability/` | Directory scaffold only; the listed tracing, prompt experiment, injection drill, CI workflow, and memo are planned. |
+| **Days 6–10: OpsPilot Capstone** | `capstone/` | Directory scaffold only; the listed container setup and incident/data agents are planned. |
 
-### Week 2: Capstone Project (OpsPilot)
+### Planned deliverables not present yet
 
-* **Directory**: `capstone/`
-* **Goal**: Build OpsPilot—an autonomous multi-agent incident response copilot that investigates logs, executes corrective RAG over runbooks, drafts postmortems, and enforces human-in-the-loop approval before taking side-effect actions.
+The following items have no implementation in the current workspace: Day 1 `decision_memo.md`; Day 2 `chunking_study.py`; Day 3 offline `test_graph.py`; the Day 4 ADK supervisor port/comparison memo; all Day 5 files (`tracing_setup.py`, `eval_experiment.py`, `injection_drill.py`, `.github/workflows/eval_ci.yml`, `tool_choice_memo.md`); and all Days 6–10 capstone files (`docker-compose.yml`, `knowledge_agent.py`, `data_agent.py`, `incident_analyst_a2a.py`, `ops_pilot_supervisor.py`). The existing pattern files listed above are kept under their current names rather than duplicated or renamed.
 
----
+### Run Day 1
 
-## 🧪 Running Day 1 Practice
-
-All Day 1 scripts can be executed directly from either the repo root or inside `day1_foundations/`:
+The dual-provider wrapper exercises both Ollama and Gemini, so it requires a running Ollama server and a valid `GOOGLE_API_KEY`. For a local-only profile run, use `--local`.
 
 ```powershell
-# 1. Dual provider check & tracing validation
-python day1_foundations/llm.py
-
-# 2. Latency & token profiling (Gemini Cloud or Local Ollama)
-python day1_foundations/profile.py --n 5
-python day1_foundations/profile.py --local --n 5
-
-# 3. Temperature sampling experiment
-python day1_foundations/benchmark_temp.py
-
-# 4. NumPy vs. Chroma vector search benchmark
-python day1_foundations/benchmark_search.py
+C:\Python314\python.exe llm.py
+C:\Python314\python.exe day1_foundations\profile.py --local --n 5
+C:\Python314\python.exe day1_foundations\profile.py --n 5
+C:\Python314\python.exe day1_foundations\benchmark_search.py
+C:\Python314\python.exe day1_foundations\benchmark_temp.py
 ```
 
-## 🧪 Running the Day 4 ADK Evaluation
+The cloud profile and temperature experiment require Gemini credentials. Semantic search and local profiling require Ollama; the RAG exercise also needs `nomic-embed-text`.
+
+### Run Day 2
+
+Run the standalone patterns from the repository root:
 
 ```powershell
-pytest evals/test_day4_adk_evals.py -k "not trajectory" -v
-pytest evals/test_day4_adk_evals.py -v
-adk eval day4_adk evals/day4_incident_pipeline.evalset.json
+C:\Python314\python.exe -m day2_langchain.pattern1_fallbacks
+C:\Python314\python.exe -m day2_langchain.pattern2_safe_tool
+C:\Python314\python.exe -m day2_langchain.pattern3_agent_middleware
+C:\Python314\python.exe -m day2_langchain.pattern5_rag_agent
 ```
 
-The ADK trajectory test uses the model selected by `USE_LOCAL_LLM` and can take
-several minutes per evaluation run when using a local model.
+Run the extraction API in a separate terminal; open `http://127.0.0.1:8000/docs` to try its POST endpoint:
+
+```powershell
+C:\Python314\python.exe -m uvicorn day2_langchain.pattern4_extract_api:app --host 127.0.0.1 --port 8000
+```
+
+The extraction API uses Gemini. The fallback example needs both Gemini credentials and a reachable local Ollama server. The RAG example uses Ollama embeddings and Gemini for answer generation.
+
+### Run Day 3
+
+```powershell
+C:\Python314\python.exe -m day3_langgraph.pattern1_crag
+C:\Python314\python.exe -m day3_langgraph.pattern2_hitl
+C:\Python314\python.exe -m day3_langgraph.pattern3_map_reduce
+C:\Python314\python.exe -m day3_langgraph.pattern4_supervisor
+C:\Python314\python.exe -m day3_langgraph.pattern5_functional_api
+```
+
+### Run Day 4
+
+```powershell
+C:\Python314\python.exe -m day4_adk.pattern1_pipeline
+C:\Python314\python.exe -m day4_adk.pattern2_critique_loop
+C:\Python314\python.exe -m day4_adk.pattern3_guardrail_callbacks
+C:\Python314\python.exe -m day4_adk.pattern4_mcp_runbooks
+```
+
+The MCP exercise requires Node.js/npm so it can start `@modelcontextprotocol/server-filesystem`. To test A2A, start the server in one terminal and the client in another:
+
+```powershell
+C:\Python314\python.exe -m day4_adk.pattern5_a2a_server
+C:\Python314\python.exe -m day4_adk.test_a2a_client
+```
+
+To run the ADK entrypoint or evaluation:
+
+```powershell
+C:\Python314\Scripts\adk.exe run day4_adk
+C:\Python314\Scripts\adk.exe web day4_adk
+C:\Python314\python.exe -m pytest evals\test_day4_adk_evals.py -v
+C:\Python314\Scripts\adk.exe eval day4_adk evals\day4_incident_pipeline.evalset.json
+```
+
+The trajectory evaluation makes model calls and may take several minutes with a local model.

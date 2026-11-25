@@ -38,10 +38,7 @@ GOOGLE_GENAI_USE_VERTEXAI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "FALSE").uppe
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.5-flash-lite")
 USE_LOCAL_LLM = os.getenv("USE_LOCAL_LLM", "false").lower() == "true"
 LOCAL_MODEL = os.getenv("LOCAL_MODEL", "qwen3:8b")
-OLLAMA_BASE_URL = os.getenv(
-    "OLLAMA_API_BASE",
-    os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 # LangSmith Configuration
 LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "false").lower() == "true"
