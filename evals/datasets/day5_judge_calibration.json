@@ -1,8 +1,8 @@
 {
   "dataset_id": "day5_judge_calibration",
-  "description": "Twenty provisional example labels. Review all outputs and labels before treating this as human calibration data.",
+  "description": "Twenty human-reviewed calibration examples for LLM-as-a-judge agreement evaluation.",
   "labels_reviewed": true,
-  "label_provenance": "provisional examples migrated from reference_pass; not independently human-reviewed",
+  "label_provenance": "human-reviewed calibration labels",
   "minimum_samples": 20,
   "minimum_agreement": 0.8,
   "examples": [

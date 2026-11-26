@@ -2,7 +2,7 @@
 
 ## Use case and data
 
-Support engineers need answers grounded in eight local incident runbooks and the
+Support engineers need answers grounded in 11 local incident runbooks and the
 25-question evaluation set in `data/docs_qa.csv`. The runbooks change as operating
 procedures change, so the answer must reflect current material and cite its source.
 

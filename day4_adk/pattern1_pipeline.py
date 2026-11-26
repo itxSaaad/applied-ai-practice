@@ -126,7 +126,7 @@ root_cause_summarizer = LlmAgent(
     instruction=(
         "Review database triage: {triage_findings}\n"
         "Auth logs: {auth_logs}\nPayment logs: {payment_logs}\n"
-        "Checkout logs: {checkout_logs}\n"
+        "Checkout logs: {checkout_logs}\nWorker logs: {worker_logs}\n"
         "Summarize the findings and likely root cause in no more than two "
         "sentences. Do not speculate or include reasoning."
     ),

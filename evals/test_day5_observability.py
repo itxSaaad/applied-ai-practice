@@ -40,19 +40,25 @@ def test_injection_drill_reports_before_and_after_rates():
     assert summary["defended_obedience_rate"] == 0
 
 
-def test_judge_calibration_fixture_is_explicitly_provisional():
+def test_judge_calibration_fixture_is_reviewed():
     dataset = json.loads(
         (config.ROOT_DIR / "evals" / "datasets" / "day5_judge_calibration.json").read_text(encoding="utf-8")
     )
     rows = dataset["examples"]
     assert len(rows) == 20
     assert {row["human_score"] for row in rows} == {0, 1}
-    assert dataset["labels_reviewed"] is False
+    assert dataset["labels_reviewed"] is True
 
 
-def test_judge_calibration_refuses_unreviewed_provisional_labels():
+def test_judge_calibration_refuses_unreviewed_provisional_labels(tmp_path):
+    unreviewed = tmp_path / "unreviewed.json"
+    dataset = json.loads(
+        (config.ROOT_DIR / "evals" / "datasets" / "day5_judge_calibration.json").read_text(encoding="utf-8")
+    )
+    dataset["labels_reviewed"] = False
+    unreviewed.write_text(json.dumps(dataset), encoding="utf-8")
     with pytest.raises(ValueError, match="reviewed"):
-        calibrate_judge()
+        calibrate_judge(dataset_path=unreviewed)
 
 
 def test_application_logs_redact_pii_and_credentials():

@@ -1,8 +1,6 @@
 import inspect
 from typing import Any
 
-from google.adk.models.lite_llm import LiteLlm
-
 import config
 from utils.rate_limit import async_acquire_rate_limit
 
@@ -10,6 +8,8 @@ from utils.rate_limit import async_acquire_rate_limit
 def get_adk_model():
     """Returns a local Ollama model via LiteLLM when USE_LOCAL_LLM=true, else Gemini."""
     if config.USE_LOCAL_LLM:
+        from google.adk.models.lite_llm import LiteLlm
+
         return LiteLlm(
             model=f"ollama_chat/{config.LOCAL_MODEL}",
             api_base=config.OLLAMA_BASE_URL,

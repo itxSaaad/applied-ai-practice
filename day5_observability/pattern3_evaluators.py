@@ -133,18 +133,21 @@ def calibrate_judge(
     matches = 0
     for example in examples:
         response = judge.invoke(
-            "Compare the candidate answer with the reference. Return exactly PASS or FAIL.\n"
+            "Compare the candidate answer with the reference.\n"
+            "Return PASS if the candidate captures the key technical facts of the reference "
+            "without contradicting it or giving unsafe advice; otherwise return FAIL.\n"
+            "Reply with a single word: PASS or FAIL.\n"
             f"Question: {example['input']}\n"
             f"Reference: {example['reference']}\n"
             f"Candidate: {example['output']}",
             config=config.get_run_config(
-                prompt_version="judge-calibration-v1",
+                prompt_version="judge-calibration-v2",
                 model=judge_model,
                 provider="local-ollama" if judge_model.startswith("ollama:") else "cloud",
             ),
         )
-        decision = _extract_clean_text(response).strip().upper()
-        prediction = int(decision.startswith("PASS"))
+        decision = _extract_clean_text(response).strip().strip("*`\"'.").upper()
+        prediction = int(decision.startswith("PASS") or (decision.endswith("PASS") and "FAIL" not in decision))
         matches += prediction == example["human_score"]
 
     agreement = matches / len(examples)

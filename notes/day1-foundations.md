@@ -7,7 +7,7 @@ output baselines before later days add orchestration.
 
 | Module | Purpose |
 | --- | --- |
-| `day1_foundations/llm.py` | Shared traced chat-model entry point. |
+| `llm.py` | Shared traced chat-model entry point. |
 | `day1_foundations/profile.py` | Profiles local/cloud model latency, TTFT, and usage. |
 | `day1_foundations/benchmark_search.py` | Measures semantic search over the course corpus. |
 | `day1_foundations/benchmark_temp.py` | Compares temperature and structured-output behavior. |

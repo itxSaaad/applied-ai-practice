@@ -77,7 +77,9 @@ research_subgraph = research_builder.compile()
 
 
 def analyst_worker(state: SubgraphState) -> dict:
-    result = query_incidents_sql.invoke({"query": "SELECT id, title, severity, status FROM incidents LIMIT 10"})
+    result = query_incidents_sql.invoke(
+        {"query": "SELECT incident_id, title, severity, status FROM incidents LIMIT 10"}
+    )
     return {"messages": [HumanMessage(content=f"Incident data:\n{result}")]}
 
 
