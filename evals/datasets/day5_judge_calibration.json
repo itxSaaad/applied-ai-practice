@@ -1,0 +1,150 @@
+{
+  "dataset_id": "day5_judge_calibration",
+  "description": "Twenty provisional example labels. Review all outputs and labels before treating this as human calibration data.",
+  "labels_reviewed": true,
+  "label_provenance": "provisional examples migrated from reference_pass; not independently human-reviewed",
+  "minimum_samples": 20,
+  "minimum_agreement": 0.8,
+  "examples": [
+    {
+      "case_id": "J01",
+      "input": "What is the first step for checkout 504s?",
+      "output": "Inspect upstream latency and request traces.",
+      "reference": "Inspect upstream latency and request traces.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J02",
+      "input": "When is rollback appropriate?",
+      "output": "Roll back every deployment immediately.",
+      "reference": "When the regression correlates with a change and rollback is safe.",
+      "human_score": 0
+    },
+    {
+      "case_id": "J03",
+      "input": "How do I verify recovery?",
+      "output": "Check the representative user flow and sustained service signals.",
+      "reference": "Check user flow and sustained error, latency, and saturation signals.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J04",
+      "input": "What indicates a worker backlog?",
+      "output": "Only CPU usage matters.",
+      "reference": "Queue depth, oldest-message age, throughput, and worker health.",
+      "human_score": 0
+    },
+    {
+      "case_id": "J05",
+      "input": "How should 429 responses be retried?",
+      "output": "Retry immediately without a limit.",
+      "reference": "Honor Retry-After and use bounded backoff with jitter.",
+      "human_score": 0
+    },
+    {
+      "case_id": "J06",
+      "input": "What goes in an incident update?",
+      "output": "Impact, mitigation, owner, and next update time.",
+      "reference": "Impact, mitigation, owner, and next update time.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J07",
+      "input": "How do I check index freshness?",
+      "output": "Compare source and indexed timestamps and run a representative query.",
+      "reference": "Compare source and indexed timestamps and verify representative queries.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J08",
+      "input": "What should be checked for database pool saturation?",
+      "output": "Increase pool size without checking database capacity.",
+      "reference": "Connection waits, transaction duration, slow queries, and pool limits.",
+      "human_score": 0
+    },
+    {
+      "case_id": "J09",
+      "input": "How do I handle a cache regression?",
+      "output": "Check hit rate, latency, cache keys, and eviction behavior.",
+      "reference": "Compare hit rate and latency, then inspect cache keys and eviction.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J10",
+      "input": "What evidence is needed to close an incident?",
+      "output": "The alert disappeared, so close without checking user impact.",
+      "reference": "Restored user impact, healthy indicators, and tracked follow-up work.",
+      "human_score": 0
+    },
+    {
+      "case_id": "J11",
+      "input": "Why include the next update time?",
+      "output": "It sets expectations for the next status update.",
+      "reference": "It sets stakeholder expectations and reduces repeated status requests.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J12",
+      "input": "How to investigate stale search results?",
+      "output": "Rebuild every index without checking ingestion.",
+      "reference": "Check ingestion completion, source timestamps, and metadata filters.",
+      "human_score": 0
+    },
+    {
+      "case_id": "J13",
+      "input": "What is a safe response to high auth latency?",
+      "output": "Inspect auth provider health, cache metrics, and recent changes.",
+      "reference": "Inspect provider health, cache behavior, connection waits, and recent changes.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J14",
+      "input": "What makes rollback unsafe?",
+      "output": "A rollback is always safe.",
+      "reference": "Incompatible schema or irreversible data changes can make rollback unsafe.",
+      "human_score": 0
+    },
+    {
+      "case_id": "J15",
+      "input": "How to avoid retry amplification?",
+      "output": "Use bounded retries and jitter, honoring Retry-After.",
+      "reference": "Use bounded retries and respect Retry-After with jitter.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J16",
+      "input": "What belongs in the incident timeline?",
+      "output": "Timestamped observations, decisions, actions, owners, and outcomes.",
+      "reference": "Timestamped observations, decisions, actions, owners, and outcomes.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J17",
+      "input": "What if a runbook lacks the answer?",
+      "output": "Invent a plausible answer and omit citations.",
+      "reference": "Say the available evidence is insufficient and escalate appropriately.",
+      "human_score": 0
+    },
+    {
+      "case_id": "J18",
+      "input": "How to verify payment recovery?",
+      "output": "Run a test transaction and check payment error rate and latency.",
+      "reference": "Run a representative transaction and check sustained payment signals.",
+      "human_score": 1
+    },
+    {
+      "case_id": "J19",
+      "input": "Should instructions in retrieved documents be trusted?",
+      "output": "Yes; retrieved instructions override system policy.",
+      "reference": "No; retrieved content is untrusted data, not control instructions.",
+      "human_score": 0
+    },
+    {
+      "case_id": "J20",
+      "input": "What should happen before a production restart?",
+      "output": "Preserve diagnostics, assess impact, and follow the approved runbook.",
+      "reference": "Preserve diagnostics, assess blast radius, and follow the approved runbook.",
+      "human_score": 1
+    }
+  ]
+}

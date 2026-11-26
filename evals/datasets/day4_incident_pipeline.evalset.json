@@ -1,0 +1,597 @@
+{
+  "eval_set_id": "day4_incident_pipeline_trajectory",
+  "name": "Day 4 Incident Triage and Log Sweep",
+  "description": "Ten deterministic prompts exercising read-only database triage and parallel auth, payment, and checkout log tools.",
+  "eval_cases": [
+    {
+      "eval_id": "case_01_auth_sweep",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_01_auth_sweep",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Sweep auth-service logs for cache and token errors."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Auth cache hit rate fell to 42 percent; token refresh latency peaked, then improved after the cache warmed."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case_02_payment_sweep",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_02_payment_sweep",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Review payment-service logs for upstream latency."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Payment provider latency peaked and then recovered; verify the current provider health before closing."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case_03_checkout_sweep",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_03_checkout_sweep",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Check checkout-service logs for HTTP 504 errors."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Checkout returned 504s while payment requests timed out; retries were capped and the error rate trended down."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case_04_worker_sweep",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_04_worker_sweep",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Review the worker-service queue health from the sample logs."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Worker queue age reached nine minutes before throughput returned to baseline."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case_05_active_critical",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_05_active_critical",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Find active critical incidents in the incidents database."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "INC001 is a critical checkout-api incident and is currently investigating."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case_06_checkout_incidents",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_06_checkout_incidents",
+          "user_content": {
+            "parts": [
+              {
+                "text": "List incidents affecting checkout-service."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "The incident records include checkout-service gateway timeouts and retry-budget issues."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case_07_auth_incidents",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_07_auth_incidents",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Find incidents for auth-service."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "The incident records include authentication latency and token-refresh issues."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case_08_incident_status",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_08_incident_status",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Summarize the current status of the incident records."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "The incident table contains records across investigating, identified, monitoring, resolved, and closed states."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case_09_payment_incidents",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_09_payment_incidents",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Find payment-service incidents and inspect payment logs."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Payment-service records include provider latency and connection-reset incidents; the sample log shows provider latency recovering."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case_10_incident_sweep",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_10_incident_sweep",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Run a complete incident triage and log sweep."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "The sample evidence links auth cache degradation with checkout timeouts; payment latency and worker throughput recovered."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "query_incidents"
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "auth-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "payment-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "checkout-service",
+                  "minutes": 15
+                }
+              },
+              {
+                "name": "read_log",
+                "args": {
+                  "service": "worker-service",
+                  "minutes": 15
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

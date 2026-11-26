@@ -1,0 +1,51 @@
+{
+  "dataset_id": "day2_ticket_extraction",
+  "description": "Five compact ticket extraction examples with expected core fields.",
+  "examples": [
+    {
+      "ticket_id": "T001",
+      "input": "Checkout is returning 504 responses during payment submission; our launch is blocked.",
+      "expected": {
+        "category": "Infrastructure",
+        "priority": "Critical",
+        "product": "checkout-api"
+      }
+    },
+    {
+      "ticket_id": "T002",
+      "input": "I was charged twice for one order and need help getting the duplicate payment refunded.",
+      "expected": {
+        "category": "Billing",
+        "priority": "High",
+        "product": "payments"
+      }
+    },
+    {
+      "ticket_id": "T003",
+      "input": "Users cannot sign in after the authentication service deployment; password reset also fails.",
+      "expected": {
+        "category": "Authentication",
+        "priority": "High",
+        "product": "auth-service"
+      }
+    },
+    {
+      "ticket_id": "T004",
+      "input": "The mobile app crashes when opening the profile page on Android 14.",
+      "expected": {
+        "category": "Bug",
+        "priority": "Medium",
+        "product": "mobile-app"
+      }
+    },
+    {
+      "ticket_id": "T005",
+      "input": "Thank you for quickly fixing the invoice export issue; everything works now.",
+      "expected": {
+        "category": "Billing",
+        "priority": "Low",
+        "product": "invoice-export"
+      }
+    }
+  ]
+}

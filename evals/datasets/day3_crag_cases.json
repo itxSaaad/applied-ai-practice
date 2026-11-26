@@ -1,0 +1,33 @@
+{
+  "dataset_id": "day3_crag_grounding",
+  "description": "Deterministic relevant and irrelevant retrieval evidence for grounding checks.",
+  "cases": [
+    {
+      "case_id": "crag_checkout_timeout",
+      "query": "What should I inspect for checkout 504 errors?",
+      "relevant_source": "data/runbooks/checkout_504.md",
+      "relevant_chunk": "Compare gateway and upstream latency, follow request IDs, and inspect dependency health and timeout budgets.",
+      "irrelevant_source": "data/runbooks/search_index.md",
+      "irrelevant_chunk": "Compare source and indexed timestamps and verify representative search queries.",
+      "expected_grounded": true
+    },
+    {
+      "case_id": "crag_token_eviction",
+      "query": "How do I investigate token refresh failures after cache eviction?",
+      "relevant_source": "data/runbooks/auth_token_eviction.md",
+      "relevant_chunk": "Check refresh latency, cache hit rate, provider health, and recent eviction changes.",
+      "irrelevant_source": "data/runbooks/worker_queue.md",
+      "irrelevant_chunk": "Check queue depth, oldest-message age, throughput, and worker health.",
+      "expected_grounded": true
+    },
+    {
+      "case_id": "crag_retry_budget",
+      "query": "How should 429 responses be retried?",
+      "relevant_source": "data/runbooks/rate_limits.md",
+      "relevant_chunk": "Honor Retry-After and use bounded backoff with jitter.",
+      "irrelevant_source": "data/runbooks/deploy_rollback.md",
+      "irrelevant_chunk": "Assess whether a rollback is safe before reverting a deployment.",
+      "expected_grounded": true
+    }
+  ]
+}
