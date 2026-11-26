@@ -1,28 +1,17 @@
-import logging
-import os
-import sys
-from pathlib import Path
-from dotenv import load_dotenv
-
-# Ensure repository root is in sys.path
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-import config
 from langchain_core.messages import HumanMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.func import entrypoint, task
 
-load_dotenv()
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("FunctionalAPI")
+import config
+from llm import _extract_clean_text, get_llm
+from utils.logging import get_logger
 
-llm = ChatGoogleGenerativeAI(
-    model=os.getenv("LLM_MODEL", config.LLM_MODEL),
-    google_api_key=config.GOOGLE_API_KEY,
-    temperature=0,
-)
+logger = get_logger(__name__)
+
+llm = None
+
+
+def _get_model():
+    return llm if llm is not None else get_llm()
 
 
 @task
@@ -35,9 +24,11 @@ def fetch_user_data_task(user_id: str) -> str:
 def generate_summary_task(user_data: str, query: str) -> str:
     """Isolated task step 2."""
     prompt = f"Using context '{user_data}', answer: {query}"
-    res = llm.invoke([HumanMessage(content=prompt)])
-    res_text = getattr(res, "text", res.content)
-    return str(res_text)
+    res = _get_model().invoke(
+        [HumanMessage(content=prompt)],
+        config=config.get_run_config(),
+    )
+    return _extract_clean_text(res)
 
 
 @entrypoint()
@@ -59,8 +50,7 @@ def workflow_entrypoint(inputs: dict) -> dict:
 
 
 if __name__ == "__main__":
-    callbacks = config.get_callbacks()
-    invoke_config = {"callbacks": callbacks} if callbacks else {}
+    invoke_config = config.get_run_config()
 
     try:
         result = workflow_entrypoint.invoke(
