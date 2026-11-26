@@ -1,33 +1,40 @@
-import logging
-import sys
 import time
-from pathlib import Path
 
 import chromadb
 import numpy as np
 from langchain_ollama import OllamaEmbeddings
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import config
+from utils.logging import get_logger
 
-logger = logging.getLogger("SemanticSearchBenchmark")
+logger = get_logger(__name__)
+
+
+def load_project_corpus() -> list[str]:
+    source_files = [
+        config.ROOT_DIR / "README.md",
+        *sorted(config.RUNBOOKS_DIR.glob("*.md")),
+        *sorted((config.ROOT_DIR / "day1_foundations").glob("*.py")),
+        *sorted((config.ROOT_DIR / "day2_langchain").glob("*.py")),
+        *sorted((config.ROOT_DIR / "day3_langgraph").glob("*.py")),
+        *sorted((config.ROOT_DIR / "day4_adk").glob("*.py")),
+    ]
+    splitter = RecursiveCharacterTextSplitter(chunk_size=260, chunk_overlap=20)
+    corpus = [chunk for path in source_files for chunk in splitter.split_text(path.read_text(encoding="utf-8"))]
+    if not corpus:
+        raise ValueError("No project documentation or code was available to index.")
+    logger.info(
+        "Indexing %s project chunks from %s source files.",
+        len(corpus),
+        len(source_files),
+    )
+    return corpus
 
 
 @config.trace_operation("day1_semantic_search_benchmark")
 def run_benchmark() -> dict[str, float]:
-    corpus = [
-        "PostgreSQL supports relational schemas, foreign keys, and strict ACID compliance.",
-        "Chroma is an open-source file-based local vector store optimized for embeddings.",
-        "Self-attention allows transformer models to weight relations across sequence tokens.",
-        "Ollama enables local execution of open weights models like Qwen3 and Llama3.",
-        "Cosine similarity measures the angular distance between two continuous dense vectors.",
-    ] + [
-        f"Synthetic filler document chunk number {i} covering general operational topics."
-        for i in range(495)
-    ]
+    corpus = load_project_corpus()
     query = "How do continuous dense vectors measure semantic distance?"
 
     embeddings_model = OllamaEmbeddings(
@@ -43,13 +50,19 @@ def run_benchmark() -> dict[str, float]:
     dot_products = np.dot(corpus_vectors, query_vector)
     norms_corpus = np.linalg.norm(corpus_vectors, axis=1)
     norm_query = np.linalg.norm(query_vector)
-    similarities = dot_products / (norms_corpus * norm_query)
+    denominator = norms_corpus * norm_query
+    similarities = np.divide(
+        dot_products,
+        denominator,
+        out=np.zeros_like(dot_products),
+        where=denominator != 0,
+    )
     numpy_top_5_idx = np.argsort(similarities)[::-1][:5]
     numpy_latency = (time.perf_counter() - started) * 1000
 
     started = time.perf_counter()
     client = chromadb.EphemeralClient()
-    collection = client.create_collection(name="benchmark_coll")
+    collection = client.create_collection(name=f"benchmark_{time.time_ns()}")
     collection.add(
         documents=corpus,
         embeddings=corpus_embeddings,
@@ -70,12 +83,12 @@ def run_benchmark() -> dict[str, float]:
         "recall_at_5": recall_at_5,
     }
 
-    logger.info(
-        "metric benchmark=semantic_search numpy_latency_ms=%.2f "
-        "chroma_latency_ms=%.2f recall_at_5=%.3f",
-        numpy_latency,
-        chroma_latency,
+    config.log_metric(
+        "semantic_search_recall_at_5",
         recall_at_5,
+        corpus_chunks=len(corpus),
+        numpy_latency_ms=round(numpy_latency, 2),
+        chroma_latency_ms=round(chroma_latency, 2),
     )
     return metrics
 

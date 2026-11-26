@@ -1,6 +1,0 @@
-iteration,model,ttft_ms,total_latency_ms,input_tokens,output_tokens
-1,Ollama Local (qwen3:8b),4185.01,187597.44,26,372
-2,Ollama Local (qwen3:8b),856.11,172103.91,26,432
-3,Ollama Local (qwen3:8b),760.72,162163.23,26,432
-4,Ollama Local (qwen3:8b),644.2,152410.56,26,432
-5,Ollama Local (qwen3:8b),710.84,154669.78,26,432
