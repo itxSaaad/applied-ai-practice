@@ -1,21 +1,54 @@
-import re
-import sys
+import json
+import sqlite3
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
-# Ensure repository root is in sys.path
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+from google.adk.agents import LlmAgent
 
 import config
-from google.adk.agents import LlmAgent
-from day4_adk.model_config import get_adk_model
+from data.seed.seed_incidents_db import seed_database
+from day4_adk.model_config import (
+    compose_before_model_callbacks,
+    get_adk_model,
+    rate_limit_before_model_callback,
+)
+from utils.logging import get_logger
+from utils.sqlite import fetch_read_only_rows, is_single_select
+
+DATABASE = Path(config.INCIDENTS_DB_PATH)
+logger = get_logger(__name__)
 
 
 def query_incidents(sql: str) -> str:
-    """Executes a SQL query against the incidents database."""
-    return f"Executed query: {sql}"
+    """Executes one read-only SELECT query against the seeded incidents database.
+
+    The incidents table has columns: incident_id, service, severity, status,
+    title, and created_at. Seeded severity and status values are lowercase.
+    """
+    if not is_single_select(sql):
+        raise ValueError("Only one SELECT statement may be executed.")
+    if not DATABASE.exists():
+        seed_database(database=DATABASE)
+    try:
+        rows = fetch_read_only_rows(DATABASE, sql)
+    except sqlite3.Error as error:
+        return json.dumps(
+            {
+                "error": str(error),
+                "table": "incidents",
+                "columns": [
+                    "incident_id",
+                    "service",
+                    "severity",
+                    "status",
+                    "title",
+                    "created_at",
+                ],
+            },
+            ensure_ascii=False,
+        )
+    config.log_metric("incident_query_rows", len(rows), read_only=True)
+    return json.dumps(rows, ensure_ascii=False)
 
 
 @config.trace_operation(
@@ -23,12 +56,20 @@ def query_incidents(sql: str) -> str:
     capture_input=False,
     capture_output=False,
 )
-def enforce_read_only_sql(tool_name: Any, tool_args: Dict[str, Any], tool_context: Any = None) -> Optional[Dict[str, Any]]:
+def enforce_read_only_sql(tool_name: Any, tool_args: dict[str, Any], tool_context: Any = None) -> dict[str, Any] | None:
     """Callback to block non-SELECT SQL queries strictly before execution."""
     resolved_name = getattr(tool_name, "name", tool_name)
     if resolved_name == "query_incidents":
-        query = tool_args.get("sql", "").strip().upper()
-        if not query.startswith("SELECT"):
+        query = tool_args.get("sql", "")
+        if not is_single_select(query):
+            logger.warning(
+                "Blocked non-read-only database tool call.",
+                extra={
+                    "tool_name": str(resolved_name),
+                    "guardrail_triggered": True,
+                    "day_module": "day4_adk.pattern3_guardrail_callbacks",
+                },
+            )
             # Short-circuit execution by returning an error dictionary
             return {"error": "Security Violation: Only read-only SELECT queries are allowed."}
     return None
@@ -36,12 +77,7 @@ def enforce_read_only_sql(tool_name: Any, tool_args: Dict[str, Any], tool_contex
 
 def redact_pii_from_prompt(prompt_text: str) -> str:
     """Utility function to strip email addresses and phone numbers."""
-    email_pattern = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
-    phone_pattern = r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b"
-
-    redacted = re.sub(email_pattern, "[REDACTED_EMAIL]", prompt_text)
-    redacted = re.sub(phone_pattern, "[REDACTED_PHONE]", redacted)
-    return redacted
+    return config.redact_sensitive_text(prompt_text)
 
 
 @config.trace_operation(
@@ -49,10 +85,19 @@ def redact_pii_from_prompt(prompt_text: str) -> str:
     capture_input=False,
     capture_output=False,
 )
-def before_model_guardrail(agent_name: Any, prompt: Any) -> Optional[str]:
+def before_model_guardrail(agent_name: Any, prompt: Any) -> str | None:
     """Redact direct prompt strings and ADK LlmRequest message contents."""
     if isinstance(prompt, str):
-        return redact_pii_from_prompt(prompt)
+        redacted = redact_pii_from_prompt(prompt)
+        if redacted != prompt:
+            logger.warning(
+                "Redacted PII before model invocation.",
+                extra={
+                    "guardrail_triggered": True,
+                    "day_module": "day4_adk.pattern3_guardrail_callbacks",
+                },
+            )
+        return redacted
 
     # ADK calls this with (CallbackContext, LlmRequest); redact user/model text
     # in place and return None so the guarded request proceeds normally.
@@ -62,7 +107,16 @@ def before_model_guardrail(agent_name: Any, prompt: Any) -> Optional[str]:
             for part in getattr(content, "parts", []) or []:
                 text = getattr(part, "text", None)
                 if text:
-                    part.text = redact_pii_from_prompt(text)
+                    redacted = redact_pii_from_prompt(text)
+                    if redacted != text:
+                        logger.warning(
+                            "Redacted PII before model invocation.",
+                            extra={
+                                "guardrail_triggered": True,
+                                "day_module": "day4_adk.pattern3_guardrail_callbacks",
+                            },
+                        )
+                    part.text = redacted
     return None
 
 
@@ -73,7 +127,7 @@ guarded_agent = LlmAgent(
     instruction="Execute database lookups based on user requests.",
     tools=[query_incidents],
     before_tool_callback=enforce_read_only_sql,
-    before_model_callback=before_model_guardrail,
+    before_model_callback=compose_before_model_callbacks(before_model_guardrail, rate_limit_before_model_callback),
 )
 
 

@@ -1,20 +1,17 @@
 import asyncio
-import os
-import sys
-from pathlib import Path
 
-# Ensure repository root is in sys.path
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-import config
-from google.adk.agents.callback_context import CallbackContext
 from google.adk.agents import LlmAgent, LoopAgent
+from google.adk.agents.callback_context import CallbackContext
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
-from day4_adk.model_config import get_adk_model
+
+import config
+from day4_adk.model_config import get_adk_model, rate_limit_before_model_callback
+from day5_observability.pattern1_dual_observability import (
+    configure_if_enabled,
+    flush_observability,
+)
 
 writer_agent = LlmAgent(
     name="draft_writer",
@@ -25,14 +22,29 @@ writer_agent = LlmAgent(
         "Incorporate critic feedback if present; do not include reasoning."
     ),
     output_key="postmortem_draft",
+    before_model_callback=rate_limit_before_model_callback,
 )
 
 
 def stop_loop_when_approved(callback_context: CallbackContext):
+    iteration = int(callback_context.state.get("critique_iteration", 0)) + 1
+    callback_context.state["critique_iteration"] = iteration
     feedback = str(callback_context.state.get("critic_feedback", "")).strip()
     if feedback.upper().startswith("PASSED"):
+        config.log_metric(
+            "critique_iterations",
+            iteration,
+            stop_reason="score_passed",
+        )
         callback_context.actions.escalate = True
         return types.Content(role="model", parts=[])
+    if iteration >= refinement_loop.max_iterations:
+        config.log_metric(
+            "critique_iterations",
+            iteration,
+            stop_reason="maximum_iterations",
+        )
+    return None
 
 
 critic_agent = LlmAgent(
@@ -45,6 +57,7 @@ critic_agent = LlmAgent(
     ),
     output_key="critic_feedback",
     after_agent_callback=stop_loop_when_approved,
+    before_model_callback=rate_limit_before_model_callback,
 )
 
 # Bounded critique loop
@@ -57,10 +70,9 @@ refinement_loop = LoopAgent(
 
 @config.trace_operation("day4_critique_loop_run", flush=True)
 async def main():
+    tracer_provider = configure_if_enabled()
     session_service = InMemorySessionService()
-    session = await session_service.create_session(
-        app_name="day4_loop", user_id="dev_user", session_id="sess_loop"
-    )
+    session = await session_service.create_session(app_name="day4_loop", user_id="dev_user", session_id="sess_loop")
     runner = Runner(
         agent=refinement_loop,
         app_name="day4_loop",
@@ -71,6 +83,7 @@ async def main():
         parts=[types.Part(text="Write a concise postmortem for a 10-minute Redis cache eviction spike.")],
     )
     print("[CritiqueLoop]: Executing writer-critic refinement loop...")
+
     async def consume_events():
         async for event in runner.run_async(
             user_id="dev_user",
@@ -78,11 +91,18 @@ async def main():
             new_message=msg,
         ):
             if event.is_final_response() and event.content:
-                for part in event.content.parts:
+                for part in event.content.parts or []:
                     if part.text:
                         print(f"[{event.author}]: {part.text}\n")
 
-    await asyncio.wait_for(consume_events(), timeout=240)
+    try:
+        await asyncio.wait_for(
+            consume_events(),
+            timeout=config.ADK_AGENT_RUN_TIMEOUT_SECONDS,
+        )
+    finally:
+        if tracer_provider is not None:
+            flush_observability(tracer_provider)
 
 
 if __name__ == "__main__":

@@ -1,31 +1,29 @@
-import logging
-import sys
-from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from uuid import uuid4
+
 import uvicorn
 from fastapi import FastAPI
-from pydantic import BaseModel
-
-# Ensure repository root is in sys.path
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-import config
 from google.adk.agents import LlmAgent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
-from day4_adk.model_config import get_adk_model
+from pydantic import BaseModel
 
-logger = logging.getLogger("A2AServer")
+import config
+from day4_adk.model_config import get_adk_model, rate_limit_before_model_callback
+from day5_observability.pattern1_dual_observability import (
+    configure_if_enabled,
+    flush_observability,
+)
+from utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class A2AServer:
     """Expose an ADK agent through discovery and task-submission endpoints."""
 
-    def __init__(self, agent: LlmAgent, agent_card: Dict[str, Any]):
+    def __init__(self, agent: LlmAgent, agent_card: dict[str, Any]):
         self.agent = agent
         self.agent_card = agent_card
         self.app_name = agent.name
@@ -67,9 +65,7 @@ class A2AServer:
                 new_message=message,
             ):
                 if event.is_final_response() and event.content:
-                    response_text.extend(
-                        part.text for part in event.content.parts if part.text
-                    )
+                    response_text.extend(part.text for part in event.content.parts if part.text)
             if not response_text:
                 raise RuntimeError("The ADK agent completed without a text response.")
             return {
@@ -90,6 +86,7 @@ incident_analyst = LlmAgent(
     name="incident_analyst",
     model=get_adk_model(),
     instruction="Analyze incident logs and database records to diagnose root causes.",
+    before_model_callback=rate_limit_before_model_callback,
 )
 
 # Wrap agent in A2A Server mechanics
@@ -102,6 +99,7 @@ a2a_server = A2AServer(
         "endpoints": {"task": "/a2a/v1/tasks"},
     },
 )
+
 
 class A2AObservabilityMiddleware:
     def __init__(self, wrapped_app):
@@ -140,12 +138,17 @@ class A2AObservabilityMiddleware:
 # Build an observable ASGI application around the native or fallback server.
 app = A2AObservabilityMiddleware(a2a_server.build_app())
 
+
 def run_server():
     logger.info("Starting A2A server on http://127.0.0.1:8000")
+    tracer_provider = configure_if_enabled()
     try:
         uvicorn.run(app, host="127.0.0.1", port=8000)
     finally:
-        config.flush_traces()
+        if tracer_provider is not None:
+            flush_observability(tracer_provider)
+        else:
+            config.flush_traces()
 
 
 if __name__ == "__main__":
