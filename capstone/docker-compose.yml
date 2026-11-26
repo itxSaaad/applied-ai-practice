@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: opspilot-postgres
+    environment:
+      POSTGRES_USER: opspilot
+      POSTGRES_PASSWORD: opspilot_dev_password
+      POSTGRES_DB: opspilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - opspilot_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opspilot -d opspilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: opspilot-chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - opspilot_chroma:/chroma/chroma
+
+  opspilot-adk:
+    build:
+      context: ..
+      dockerfile: capstone/Dockerfile
+    container_name: opspilot-adk
+    command: uv run uvicorn capstone.incident_analyst_a2a:app --host 0.0.0.0 --port 8002
+    env_file:
+      - ../.env
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  opspilot-api:
+    build:
+      context: ..
+      dockerfile: capstone/Dockerfile
+    container_name: opspilot-api
+    command: uv run uvicorn capstone.main:app --host 0.0.0.0 --port 8000
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_URI: postgresql://opspilot:opspilot_dev_password@postgres:5432/opspilot
+      CHROMA_HOST: chroma
+      CHROMA_PORT: "8000"
+      OPSPILOT_ADK_URL: http://opspilot-adk:8002
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+      opspilot-adk:
+        condition: service_started
+
+volumes:
+  opspilot_pgdata:
+  opspilot_chroma:
