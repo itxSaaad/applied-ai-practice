@@ -1,0 +1,50 @@
+[
+  {
+    "incident_id": "INC001",
+    "service": "checkout-api",
+    "severity": "critical",
+    "status": "investigating",
+    "title": "Gateway timeouts during payment submission",
+    "created_at": "2026-11-25T09:10:00Z"
+  },
+  {
+    "incident_id": "INC002",
+    "service": "auth-api",
+    "severity": "high",
+    "status": "identified",
+    "title": "Authentication latency after cache eviction",
+    "created_at": "2026-11-25T09:15:00Z"
+  },
+  {
+    "incident_id": "INC003",
+    "service": "payment-service",
+    "severity": "high",
+    "status": "resolved",
+    "title": "Payment provider connection reset",
+    "created_at": "2026-11-24T17:05:00Z"
+  },
+  {
+    "incident_id": "INC004",
+    "service": "worker-service",
+    "severity": "medium",
+    "status": "monitoring",
+    "title": "Queue age increased after dependency slowdown",
+    "created_at": "2026-11-25T09:20:00Z"
+  },
+  {
+    "incident_id": "INC005",
+    "service": "checkout-service",
+    "severity": "medium",
+    "status": "closed",
+    "title": "Retry budget exhausted on checkout requests",
+    "created_at": "2026-11-22T21:15:00Z"
+  },
+  {
+    "incident_id": "INC006",
+    "service": "auth-service",
+    "severity": "low",
+    "status": "closed",
+    "title": "Token refresh errors during scheduled maintenance",
+    "created_at": "2026-11-21T11:00:00Z"
+  }
+]

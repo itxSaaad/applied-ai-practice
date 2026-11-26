@@ -1,0 +1,4 @@
+2026-11-25T09:10:00Z INFO payment-service connection pool utilization=61 percent
+2026-11-25T09:13:00Z WARN payment-service provider response latency p95=1800ms
+2026-11-25T09:16:00Z ERROR payment-service upstream request timed out
+2026-11-25T09:21:00Z INFO payment-service provider latency recovered

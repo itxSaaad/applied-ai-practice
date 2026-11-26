@@ -1,0 +1,14 @@
+{
+  "engineering": {
+    "active_headcount": 42,
+    "manager": "Engineering Operations"
+  },
+  "support": {
+    "active_headcount": 18,
+    "manager": "Customer Operations"
+  },
+  "data": {
+    "active_headcount": 11,
+    "manager": "Data Platform"
+  }
+}

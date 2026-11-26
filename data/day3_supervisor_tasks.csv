@@ -1,0 +1,6 @@
+task_id,task
+SUP01,"Find the checkout 504 runbook guidance and summarize the mitigation."
+SUP02,"Review the active critical incidents and write a concise status."
+SUP03,"Research how to verify service recovery and provide a short checklist."
+SUP04,"Check the incident sample for auth-service and summarize its status."
+SUP05,"Find safe rollback guidance and draft a three-bullet response."

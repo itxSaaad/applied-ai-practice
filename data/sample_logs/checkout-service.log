@@ -1,0 +1,4 @@
+2026-11-25T09:10:00Z ERROR checkout-service upstream payment request timed out
+2026-11-25T09:12:00Z WARN checkout-service HTTP 504 rate increased to 8 percent
+2026-11-25T09:16:00Z INFO checkout-service retry budget capped
+2026-11-25T09:20:00Z INFO checkout-service error rate trending down

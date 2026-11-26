@@ -1,0 +1,3 @@
+2026-11-25T09:10:00Z INFO worker-service queue depth=12
+2026-11-25T09:17:00Z WARN worker-service oldest job age=9m
+2026-11-25T09:22:00Z INFO worker-service throughput returned to baseline

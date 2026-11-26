@@ -1,0 +1,11 @@
+question_id,question,expected_tool
+AG01,"What is the combined headcount of engineering and support?","query_employee_directory"
+AG02,"Add 123 and 456.","calculate_metrics"
+AG03,"Which critical incidents are still being investigated?","query_read_only_sqlite"
+AG04,"How many engineering staff are active?","query_employee_directory"
+AG05,"What is 37 plus 58?","calculate_metrics"
+AG06,"List incident titles with severity Critical.","query_read_only_sqlite"
+AG07,"How many people are in the data department?","query_employee_directory"
+AG08,"Calculate 2026 plus 74.","calculate_metrics"
+AG09,"Which incidents are resolved?","query_read_only_sqlite"
+AG10,"What is the combined headcount for support and data?","query_employee_directory"

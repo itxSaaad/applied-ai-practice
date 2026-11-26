@@ -1,0 +1,4 @@
+2026-11-25T09:09:00Z INFO auth-service baseline latency p95=120ms
+2026-11-25T09:14:00Z WARN auth-service cache hit rate dropped to 42 percent
+2026-11-25T09:15:00Z ERROR auth-service token refresh latency p95=2400ms
+2026-11-25T09:18:00Z INFO auth-service cache warmed; latency p95=310ms
