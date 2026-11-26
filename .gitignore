@@ -1,34 +1,61 @@
-# Python
+# Python bytecode and caches
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
 
-# Virtual environment
+# Local Python environments
 .venv/
+venv/
+ENV/
 
-# Environment variables
+# Local credentials and key material
 .env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+.secrets/
+secrets/
+*.pem
+*.p12
+*.key
 
-# Data files, database & vector store caches
-*.csv
-*.db
-*.sqlite
-*.sqlite-wal
-*.sqlite-shm
+# Generated runtime data
+/artifacts/
 chroma_db/
+*.db
+*.sqlite*
+/logs/
 sent_emails.txt
 
-# Packages
+# Generated CSVs; versioned fixtures remain source-controlled
+*.csv
+!data/**/*.csv
+!evals/**/*.csv
+
+# Build and package outputs
+build/
+dist/
+.eggs/
 *.egg
 *.egg-info/
-.dist/
-build/
 
-# IDE / Editor
+# Local tools and editors
+.adk/
+node_modules/
 .vscode/
 .idea/
 *.iml
 
-# OS files
+# Operating-system files
 .DS_Store
 Thumbs.db
