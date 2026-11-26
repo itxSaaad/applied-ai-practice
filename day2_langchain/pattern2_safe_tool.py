@@ -1,51 +1,15 @@
 import json
-import logging
-import os
-import sqlite3
-import sys
 from pathlib import Path
 
-# Ensure repository root is in sys.path
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-import config
 from langchain_core.tools import tool
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("SafeTool")
+import config
+from data.seed.seed_incidents_db import seed_database
+from utils.logging import get_logger
+from utils.sqlite import fetch_read_only_rows, is_single_select
 
-DB_PATH = Path(__file__).resolve().parent.parent / "incidents.db"
-
-
-def seed_database():
-    """Creates sample data only when the incidents table does not exist."""
-    conn = sqlite3.connect(DB_PATH)
-    with conn:
-        table_exists = conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'incidents'"
-        ).fetchone()
-        if not table_exists:
-            conn.execute(
-                """
-                CREATE TABLE incidents (
-                    id INTEGER PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    severity TEXT NOT NULL,
-                    status TEXT NOT NULL
-                )
-                """
-            )
-            conn.executemany(
-                "INSERT INTO incidents (title, severity, status) VALUES (?, ?, ?)",
-                [
-                    ("Production checkout API 504 gateway timeout", "Critical", "Investigating"),
-                    ("High latency on user authentication service", "High", "Identified"),
-                    ("Periodic worker memory pressure alert", "Medium", "Resolved"),
-                ],
-            )
-    conn.close()
+DB_PATH = Path(config.INCIDENTS_DB_PATH)
+logger = get_logger(__name__)
 
 
 @tool
@@ -56,22 +20,26 @@ def seed_database():
 )
 def query_read_only_sqlite(query: str) -> str:
     """Executes a strictly READ-ONLY SQL query against incidents.db.
-    Enforces that queries must start with SELECT; write or DDL operations raise ValueError.
+
+    The incidents table has columns incident_id, service, severity, status,
+    title, and created_at. Seeded severity and status values are lowercase;
+    use case-insensitive comparisons when the user's casing may differ.
+    Queries must start with SELECT; writes and DDL are rejected.
     """
-    normalized = query.strip().lower()
-    if not normalized.startswith("select"):
+    if not is_single_select(query):
+        logger.warning(
+            "Blocked non-read-only SQLite query.",
+            extra={
+                "tool_name": "query_read_only_sqlite",
+                "guardrail_triggered": True,
+                "day_module": "day2_langchain.pattern2_safe_tool",
+            },
+        )
         raise ValueError("Write and non-SELECT statements are forbidden.")
 
-    conn = sqlite3.connect(f"{DB_PATH.as_uri()}?mode=ro", uri=True)
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query)
-        columns = [desc[0] for desc in cursor.description] if cursor.description else []
-        rows = cursor.fetchall()
-        result = [dict(zip(columns, row)) for row in rows]
-        return json.dumps(result, indent=2)
-    finally:
-        conn.close()
+    if not DB_PATH.exists():
+        seed_database(database=DB_PATH)
+    return json.dumps(fetch_read_only_rows(DB_PATH, query), indent=2)
 
 
 if __name__ == "__main__":
@@ -79,7 +47,7 @@ if __name__ == "__main__":
     seed_database()
 
     print("\n2. Executing valid read-only SELECT query:")
-    valid_query = "SELECT id, title, severity, status FROM incidents WHERE severity = 'Critical'"
+    valid_query = "SELECT incident_id, title, severity, status FROM incidents " "WHERE severity = 'critical'"
     select_result = query_read_only_sqlite.invoke({"query": valid_query})
     print(select_result)
 
