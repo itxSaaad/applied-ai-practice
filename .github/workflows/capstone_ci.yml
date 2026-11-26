@@ -1,0 +1,16 @@
+name: OpsPilot Capstone CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  capstone-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - run: uv run ruff check capstone evals/eval_runner.py evals/test_capstone.py
+      - run: uv run python -m pytest -q evals/test_capstone.py
+      - run: uv run python -m evals.eval_runner --min-pass-rate 0.8
